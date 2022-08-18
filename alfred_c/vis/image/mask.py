@@ -45,6 +45,65 @@ ALL_COLORS_MAP = {
     "coco": create_coco_stuff_colormap(),
 }
 
+# rule1 : 이건 디텍트론이 객체를 찾아주는 거라서 yolo의 결과와는 다소 차이가 있음 yolo의 결과가 더 좋음
+tmp = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
+frame = [1]     # 몇번째 frmae인지를 표시하기 위한 변수
+shot = {}       # shot의 입력에 따라 순서대로 정보를 저장할 변수
+shot_count = [1]
+shot_count1 = [1]
+shot_changed = [2,4,6]
+# 80개 cocodataset을 reset하는 code
+def reset(tmp):
+    for i in range(len(tmp)):
+        tmp[i] = 0
+# 유사도 계산을 위해 큰 값을 반환
+def calc(shot):
+    ct1 = 0
+    ct2 = 0
+    for i in range(len(shot['shot_1'])):
+        if (shot['shot_' + str(len(shot.keys())-1)][i] == 1):
+            ct1 += 1
+        if(shot['shot_' + str(len(shot.keys()))][i] == 1):
+            ct2 += 1
+    max_value = max(ct1,ct2)
+    return max_value
+# AND연산 수행
+def compare(shot):
+    # 샷의 갯수 중 끝에서 2개끼리 비교하도록 하면 됨...
+    count = 0
+    for i in range(len(shot['shot_1'])):
+        if ((shot['shot_' + str(len(shot.keys())-1)][i] & shot['shot_' + str(len(shot.keys()))][i]) == 1):
+            count += 1
+    print('같은 클래스의 수 : ', count)
+    max_value = calc(shot)  # 큰 값음 함수로 계산
+    similarity1 = count / max_value
+    print('유사도1         : ', similarity1)
+
+
+def rule1(classes,class_names,temp1):
+    print("---------------------------------------------------Descriprion-----------------------------------------------------")
+    print("classes     : ",classes)               # 한 frame에서 검출한 객체의 index를 모두 담고있음
+    result = set(classes)                         # 중복되는 class를 정리
+    print('set_classes : ', result)               # 정리한 클래스 출력
+    print('index_match : ',tmp)                   # 80개의 list에 검출한 index를 누적해서 표시!
+    print('frame_number: ', len(frame))
+    temp = tmp.copy()
+    # shot 별로 매칭된 80개의 리스트를 누적해 딕셔너리에 저장하는 코드
+    for k in range(len(shot_changed)):
+        #if(len(frame) == shot_changed[len(shot_count)-1]):
+        if(len(frame) == shot_changed[k]):
+            #shot = {'shot_'+str(len(shot_count)) : tmp}
+            shot['shot_' + str(len(shot_count))] = temp # 샷이 바뀔 때마다 딕셔너리에 80개의 class list를 저장
+            shot_count.append(1)
+            print(shot)
+            reset(tmp)
+    print('shot_count : ', len(shot.keys()))            # 몇번째 샷인지 출력, 여기까지 문제 없음
+    # if(len(shot_count) == len(shot_changed)):
+    #     compare(shot)
+
+    # and 연산 수행
+    if (len(shot.keys()) >= 2):
+        compare(shot)
 
 def draw_masks_maskrcnn(image, boxes, scores, labels, masks, human_label_list=None,
                         score_thresh=0.6, draw_box=True):
@@ -311,6 +370,8 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
                     cy = int(M["m01"] / M["m00"])
                     # draw labels
                     cv2.putText(img, txt, (cx, cy), font, font_scale, [255, 255, 255], 1, cv2.LINE_AA)
+    rule1(classes, class_names, temp1)  # rule 1번
+    frame.append(1)
 
     if return_combined:
         img = cv2.addWeighted(img, 0.7, res_m, alpha, 0.4)
