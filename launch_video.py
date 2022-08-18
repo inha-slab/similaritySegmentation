@@ -79,7 +79,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="C:/Users/user/Desktop/detectron2-main/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml", # Donghwi Modify (Directory Error : Absoulute Directory to fix)
+        default="C:/Users/user/Desktop/detectron2-main/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml", # Donghwi Modify (Directory Error : Absoulute Directory to fix) Using Own's detectron(!Important!)
         metavar="FILE",
         help="path to config file",
     )
