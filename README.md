@@ -1,4 +1,8 @@
-# similaritySegmentation
+# Modeling of Semantic Similarity for Scene Segmentation
+
+Paper
+ - 장면 분할 기법을 위한 의미적 유사도의 모델링  
+     - http://www.ibookkorea.net/Viewer/2022-02/249  
 
 참고 Site  
   
