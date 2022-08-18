@@ -270,7 +270,7 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
     for i, m in enumerate(bitmasks):
         if m.shape != img.shape:
             m = cv2.resize(m, (img.shape[1], img.shape[0]))
-        _, cts, _ = cv2.findContours(m, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE) #Donghwi Modify (Original : cts, _)
+        cts, _ = cv2.findContours(m, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE) #Donghwi Modify (Original : cts, _)
         if len(cts) > 0:
             cts = max(cts, key=cv2.contourArea)
         # enssue this is a unique color

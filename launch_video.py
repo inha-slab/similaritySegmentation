@@ -8,8 +8,8 @@ import time
 import cv2
 import detectron2.data.transforms as T
 import torch
-from alfred.vis.image.det import visualize_det_cv2_part
-from alfred.vis.image.mask import vis_bitmasks_with_classes
+from alfred_c.vis.image.det import visualize_det_cv2_part
+from alfred_c.vis.image.mask import vis_bitmasks_with_classes
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.data.catalog import MetadataCatalog
@@ -79,7 +79,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="C:/Users/inha/Desktop/detectron2-main/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml", # Donghwi Modify (Directory Error : Absoulute Directory to fix)
+        default="C:/Users/user/Desktop/detectron2-main/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml", # Donghwi Modify (Directory Error : Absoulute Directory to fix)
         metavar="FILE",
         help="path to config file",
     )
