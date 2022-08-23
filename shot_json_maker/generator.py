@@ -8,6 +8,7 @@ with open("MiSang_Frame.json", 'r') as outfile:
     shot_count = frame_list[-1]["shot"] + 1
 
 while(True):
+    print(f'Current Shot : {shot_count}')
     frame = input()
     if(frame == 'q'):
         break
