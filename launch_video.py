@@ -4,6 +4,7 @@ import multiprocessing as mp
 import pathlib
 import random
 import time
+import json
 
 import cv2
 import detectron2.data.transforms as T
@@ -189,6 +190,27 @@ def vis_res_fast(res, img, class_names, colors, thresh):
     return img
 
 
+def rule3():
+    with open("MiSang_Frame.json", 'r') as outfile:
+        frame_list = json.load(outfile)
+        for shot in frame_list:
+            if shot["shot"] == 1:
+                continue
+            else:
+                current_frame = cv2.imread(f'\\MiSang_Frame\\{shot["frame"]}.jpg', 0)
+                previous_frame = cv2.imread(f'\\MiSang_Frame\\{shot["frame"]-1}.jpg', 0)
+
+                current_hist = cv2.calcHist(current_frame, [0], None, [256], [0, 256])
+                previous_hist = cv2.calcHist(previous_frame, [0], None, [256], [0, 256])
+
+                sum = 0
+                for i in range(0, 256):
+                    hist_similarity = 1 - (current_hist[i]-previous_hist[i]) / max(current_hist[i], previous_hist[i])
+                    sum = sum + hist_similarity
+
+                print(f'Shot{shot["shot"]-1}, Shot{shot["shot"]} Similarity : {sum / 256}%')
+
+
 if __name__ == "__main__":
     #
     mp.set_start_method("spawn", force=True)
@@ -212,32 +234,34 @@ if __name__ == "__main__":
     print("confidence thresh: ", conf_thresh)
 
     # iter = ImageSourceIter(args.input)
-    if args.wandb_project is not None:
-        from wandadb.wandb_logger import WandbInferenceLogger
-
-        inference_logger = WandbInferenceLogger(
-            wandb_entity=args.wandb_entity,
-            wandb_project=args.wandb_project,
-            conf_threshold=args.confidence_threshold,
-            config=cfg,
-        )
-    else:
-        inference_logger = None
+    # if args.wandb_project is not None:
+    #     from wandadb.wandb_logger import WandbInferenceLogger
+    #
+    #     inference_logger = WandbInferenceLogger(
+    #         wandb_entity=args.wandb_entity,
+    #         wandb_project=args.wandb_project,
+    #         conf_threshold=args.confidence_threshold,
+    #         config=cfg,
+    #     )
+    # else:
+    #     inference_logger = None
 
     #Video Capture Point
-    cap = cv2.VideoCapture(args.video_input)
+    # cap = cv2.VideoCapture(args.video_input)
+    #
+    # while cap.isOpened():
+    #     ret, im = cap.read()
+    #     if not ret:
+    #         break
+    #
+    #     res = predictor(im)
+    #
+    #     res = vis_res_fast(res, im, class_names, colors, conf_thresh)
+    #
+    #     cv2.imshow("frame", res)
+    #
+    #     key = cv2.waitKey(1)
+    #     if key == ord('q'):
+    #         break
 
-    while cap.isOpened():
-        ret, im = cap.read()
-        if not ret:
-            break
-
-        res = predictor(im)
-
-        res = vis_res_fast(res, im, class_names, colors, conf_thresh)
-
-        cv2.imshow("frame", res)
-
-        key = cv2.waitKey(1)
-        if key == ord('q'):
-            break
+    rule3()
