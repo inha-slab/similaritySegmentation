@@ -2,3 +2,5 @@
 .idea
 test.mp4
 __pycache__
+
+shot_json_maker/MiSang_Frame.json
