@@ -80,7 +80,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="C:/Users/user/Desktop/detectron2-main/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml", # Donghwi Modify (Directory Error : Absoulute Directory to fix) Using Own's detectron(!Important!)
+        default="/home/user/anaconda3/envs/scene39/lib/python3.9/site-packages/detectron2/model_zoo/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml", # Donghwi Modify (Directory Error : Absoulute Directory to fix) Using Own's detectron(!Important!)
         metavar="FILE",
         help="path to config file",
     )
@@ -197,11 +197,11 @@ def rule3():
             if shot["shot"] == 1:
                 continue
             else:
-                current_frame = cv2.imread(f'\\MiSang_Frame\\{shot["frame"]}.jpg', 0)
-                previous_frame = cv2.imread(f'\\MiSang_Frame\\{shot["frame"]-1}.jpg', 0)
+                current_frame = cv2.imread(f'MiSang_Frame/{shot["frame"]}.jpg', 0)
+                previous_frame = cv2.imread(f'MiSang_Frame/{shot["frame"]-1}.jpg', 0)
 
-                current_hist = cv2.calcHist(current_frame, [0], None, [256], [0, 256])
-                previous_hist = cv2.calcHist(previous_frame, [0], None, [256], [0, 256])
+                current_hist = cv2.calcHist([current_frame], [0], None, [256], [0, 256])
+                previous_hist = cv2.calcHist([previous_frame], [0], None, [256], [0, 256])
 
                 sum = 0
                 for i in range(0, 256):
@@ -247,21 +247,21 @@ if __name__ == "__main__":
     #     inference_logger = None
 
     #Video Capture Point
-    # cap = cv2.VideoCapture(args.video_input)
-    #
-    # while cap.isOpened():
-    #     ret, im = cap.read()
-    #     if not ret:
-    #         break
-    #
-    #     res = predictor(im)
-    #
-    #     res = vis_res_fast(res, im, class_names, colors, conf_thresh)
-    #
-    #     cv2.imshow("frame", res)
-    #
-    #     key = cv2.waitKey(1)
-    #     if key == ord('q'):
-    #         break
+    cap = cv2.VideoCapture(args.video_input)
+
+    while cap.isOpened():
+        ret, im = cap.read()
+        if not ret:
+            break
+
+        res = predictor(im)
+
+        res = vis_res_fast(res, im, class_names, colors, conf_thresh)
+
+        cv2.imshow("frame", res)
+
+        key = cv2.waitKey(1)
+        if key == ord('q'):
+            break
 
     rule3()
