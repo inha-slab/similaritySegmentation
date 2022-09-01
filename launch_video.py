@@ -205,8 +205,11 @@ def rule3():
 
                 sum = 0
                 for i in range(0, 256):
-                    hist_similarity = 1 - (current_hist[i]-previous_hist[i]) / max(current_hist[i], previous_hist[i])
-                    sum = sum + hist_similarity
+                    if max(current_hist[i], previous_hist[i]) == 0:
+                        sum = sum + 0
+                    else:
+                        hist_similarity = 1 - (current_hist[i]-previous_hist[i]) / max(current_hist[i], previous_hist[i])
+                        sum = sum + hist_similarity
 
                 print(f'Shot{shot["shot"]-1}, Shot{shot["shot"]} Similarity : {sum / 256}%')
 
@@ -246,6 +249,8 @@ if __name__ == "__main__":
     # else:
     #     inference_logger = None
 
+    rule3()
+
     #Video Capture Point
     cap = cv2.VideoCapture(args.video_input)
 
@@ -263,5 +268,3 @@ if __name__ == "__main__":
         key = cv2.waitKey(1)
         if key == ord('q'):
             break
-
-    rule3()
