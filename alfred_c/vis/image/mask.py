@@ -13,7 +13,6 @@ from PIL import Image
 from .get_dataset_color_map import *
 from .get_dataset_label_map import coco_label_map_list
 import json
-from sklearn.preprocessing import StandardScaler
 
 ALL_COLORS_MAP = {
     "cityscapes": create_cityscapes_label_colormap(),
