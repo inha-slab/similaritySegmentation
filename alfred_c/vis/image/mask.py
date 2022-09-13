@@ -445,8 +445,14 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
                 txt += f' {scores[classes[i]]}'
             if len(cts) > 0:
                 M = cv2.moments(cts)
-                cx = int(M["m10"] / M["m00"])
-                cy = int(M["m01"] / M["m00"])
+                cx = None
+                cy = None
+                if M["m00"] == 0:
+                    cx = 0
+                    cy = 0
+                else:
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
                 # draw labels
                 # print(class_names[classes[i]]) # 전체 class 이름
                 # print(class_names[0])

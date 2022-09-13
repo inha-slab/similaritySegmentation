@@ -257,6 +257,7 @@ if __name__ == "__main__":
     cap = cv2.VideoCapture(args.video_input)
 
     while cap.isOpened():
+        print(f'Current Frame : {frame}')
         ret, im = cap.read()
         if not ret:
             break
