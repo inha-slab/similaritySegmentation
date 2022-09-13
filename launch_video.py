@@ -80,7 +80,8 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="/home/user/anaconda3/envs/scene39/lib/python3.9/site-packages/detectron2/model_zoo/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml", # Donghwi Modify (Directory Error : Absoulute Directory to fix) Using Own's detectron(!Important!)
+        default="/home/inha/anaconda3/envs/scene39/lib/python3.9/site-packages/detectron2/model_zoo/configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
+        # Donghwi Modify (Directory Error : Absoulute Directory to fix) Using Own's detectron(!Important!)
         metavar="FILE",
         help="path to config file",
     )
@@ -92,7 +93,7 @@ def get_parser():
         "--input",
         # nargs="+",
         help="A list of space separated input images; "
-        "or a single glob pattern such as 'directory/*.jpg'",
+             "or a single glob pattern such as 'directory/*.jpg'",
     )
     parser.add_argument(
         "-v",
@@ -104,7 +105,7 @@ def get_parser():
         "-o",
         "--output",
         help="A file or directory to save output visualizations. "
-        "If not given, will show output in an OpenCV window.",
+             "If not given, will show output in an OpenCV window.",
     )
 
     parser.add_argument(
@@ -190,25 +191,19 @@ def vis_res_fast(res, img, class_names, colors, thresh):
     return img
 
 
-def rule3():
-    with open("MiSang_Frame.json", 'r') as outfile:
-        frame_list = json.load(outfile)
-        for shot in frame_list:
-            if shot["shot"] == 1:
-                continue
-            else:
-                current_frame = cv2.imread(f'MiSang_Frame/{shot["frame"]}.jpg', 0)
-                previous_frame = cv2.imread(f'MiSang_Frame/{shot["frame"]-1}.jpg', 0)
+def rule3(current_frame, previous_frame):
+    current_hist = cv2.calcHist([current_frame], [0], None, [256], [0, 256])
+    previous_hist = cv2.calcHist([previous_frame], [0], None, [256], [0, 256])
 
-                current_hist = cv2.calcHist([current_frame], [0], None, [256], [0, 256])
-                previous_hist = cv2.calcHist([previous_frame], [0], None, [256], [0, 256])
+    sum = 0
+    for i in range(0, 256):
+        if max(current_hist[i], previous_hist[i]) == 0:
+            sum = sum + 0
+        else:
+            hist_similarity = 1 - (abs(current_hist[i] - previous_hist[i]) / max(current_hist[i], previous_hist[i]))
+            sum = sum + hist_similarity
 
-                sum = 0
-                for i in range(0, 256):
-                    hist_similarity = 1 - (current_hist[i]-previous_hist[i]) / max(current_hist[i], previous_hist[i])
-                    sum = sum + hist_similarity
-
-                print(f'Shot{shot["shot"]-1}, Shot{shot["shot"]} Similarity : {sum / 256}%')
+    return sum / 256
 
 
 if __name__ == "__main__":
@@ -227,7 +222,7 @@ if __name__ == "__main__":
     print(cfg.INPUT.MIN_SIZE_TEST, cfg.INPUT.MIN_SIZE_TEST, cfg.INPUT.MAX_SIZE_TEST)
 
     colors = [
-        [random.randint(0, 255) for _ in range(3)]  #class별 랜덤 색상리스트
+        [random.randint(0, 255) for _ in range(3)]  # class별 랜덤 색상리스트
         for _ in range(cfg.MODEL.YOLO.CLASSES)
     ]
     conf_thresh = cfg.MODEL.YOLO.CONF_THRESHOLD
@@ -246,13 +241,45 @@ if __name__ == "__main__":
     # else:
     #     inference_logger = None
 
-    #Video Capture Point
+    # frame, Shot count initialize
+    shot = 1
+    frame = 0
+
+    # JSON Read
+    frame_list = None
+    with open("MiSang_Frame.json", 'r') as outfile:
+        frame_list = json.load(outfile)
+
+    # Save Shot (odd = Last_Frame, even = First_Frame)
+    save_shot = []
+
+    # Video Capture Point
     cap = cv2.VideoCapture(args.video_input)
 
     while cap.isOpened():
         ret, im = cap.read()
         if not ret:
             break
+
+        # Rule3 Point
+        if frame == frame_list[shot - 1]["frame"] - 1:  # First_Frame Save Point
+            save_shot.append(im)
+
+            # First_Frame일 경우 이전 5개 샷의 Last_Frame을 체크해서 유사도를 구한다.
+            if shot != 1:  # 첫번째 샷은 무시한다.
+                start_point = shot - 5
+                if start_point <= 1:
+                    start_point = 1
+
+                for i in range(start_point, shot):
+                    print(f'Rule3 - Shot{i}, Shot{shot} : {rule3(im, save_shot[(i - 1) * 2 + 1]) * 100}%')
+
+            shot = shot + 1
+
+        elif frame == frame_list[shot - 1]["frame"] - 2:  # Last_Frame Save Point
+            save_shot.append(im)
+
+        frame = frame + 1
 
         res = predictor(im)
 
@@ -264,4 +291,4 @@ if __name__ == "__main__":
         if key == ord('q'):
             break
 
-    rule3()
+    cv2.destroyAllWindows()
