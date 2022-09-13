@@ -1,32 +1,8 @@
-#
-# Copyright (c) 2020 JinTian.
-#
-# This file is part of alfred
-# (see http://jinfagang.github.io).
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
+
 """
 Draw masks on image,
 every mask will has single id, and color are not same
 also this will give options to draw detection or not
-
-
 """
 import torch
 import cv2
@@ -36,6 +12,7 @@ from .det import draw_one_bbox
 from PIL import Image
 from .get_dataset_color_map import *
 from .get_dataset_label_map import coco_label_map_list
+import json
 
 ALL_COLORS_MAP = {
     "cityscapes": create_cityscapes_label_colormap(),
@@ -44,6 +21,162 @@ ALL_COLORS_MAP = {
     "voc": create_pascal_label_colormap(),
     "coco": create_coco_stuff_colormap(),
 }
+# json 으로부터 shot이 변경되는 부분의 frame을 읽어오기
+shot_changed = []
+with open('MiSang_Frame.json') as json_file:
+	misang_frame = json.load(json_file)
+
+for i in range(len(misang_frame)):
+    shot_changed.append(misang_frame[i]['frame']-1)
+shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
+# print(shot_changed)
+# ----------------------------------------------------------------------------------------------------------------------
+# rule1 : 이건 디텍트론이 객체를 찾아주는 거라서 yolo의 결과와는 다소 차이가 있음 yolo의 결과가 더 좋음
+tmp = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
+frame = [1]     # 몇번째 frmae인지를 표시하기 위한 변수
+shot = {}       # shot의 입력에 따라 순서대로 정보를 저장할 dictionary 변수
+shot_count = [1]
+# shot_changed = [3,6,10,15,20]          # shot이 변경될 때의 frame을 입력해주면 됨!, 추후 json으로!
+# 80개 cocodataset을 reset하는 code
+def reset(tmp):
+    for i in range(len(tmp)):
+        tmp[i] = 0
+# 유사도 계산을 위해 큰 값을 반환 분모 중 큰 값을 반환
+def calc(shot):
+    ct1 = 0
+    ct2 = 0
+    for i in range(len(shot['shot_1'])):
+        if (shot['shot_' + str(len(shot.keys())-1)][i] == 1):
+            ct1 += 1
+        if(shot['shot_' + str(len(shot.keys()))][i] == 1):
+            ct2 += 1
+    max_value = max(ct1,ct2)
+    return max_value
+# AND연산 수행
+def compare(shot):
+    # 샷의 갯수 중 끝에서 2개끼리 비교하도록 하면 됨...
+    count = 0
+    for i in range(len(shot['shot_1'])):
+        if ((shot['shot_' + str(len(shot.keys())-1)][i] & shot['shot_' + str(len(shot.keys()))][i]) == 1):
+            count += 1
+    # print('같은 클래스의 수 : ', count)
+    max_value = calc(shot)  # 큰 값음 함수로 계산
+    similarity1 = count / max_value
+    print('Similarity1         : ', similarity1)
+    return  similarity1
+
+def rule1(classes,class_names,temp1):
+    print("---------------------------------------------------Descriprion_Rule1-----------------------------------------------------")
+    # print("classes     : ",classes)               # 한 frame에서 검출한 객체의 index를 모두 담고있음
+    result = set(classes)                         # 중복되는 class를 정리
+    print('set_classes : ', result)               # 정리한 클래스 출력
+    # print('index_match : ',tmp)                   # 80개의 list에 검출한 index를 누적해서 표시!
+    # print('frame_number: ', len(frame))
+    temp = tmp.copy()
+    # shot 별로 매칭된 80개의 리스트를 누적해 딕셔너리에 저장하는 코드
+    for k in range(len(shot_changed)):
+        #if(len(frame) == shot_changed[len(shot_count)-1]):
+        if(len(frame) == shot_changed[k]):
+            #shot = {'shot_'+str(len(shot_count)) : tmp}
+            shot['shot_' + str(len(shot_count))] = temp # 샷이 바뀔 때마다 딕셔너리에 80개의 class list를 저장
+            shot_count.append(1)
+            print(shot) # 누적되는 샷을 출력
+            reset(tmp)
+    # print('shot_count : ', len(shot.keys()))            # 몇번째 샷인지 출력, 여기까지 문제 없음
+
+    # and 연산 수행
+    if (len(shot.keys()) >= 2):
+        similarity1 = compare(shot)
+        return similarity1
+# ----------------------------------------------------------------------------------------------------------------------
+# rule2_initialization
+tmp1 = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
+temp_sim2 = [0] * 80 # 80개의 각 class에 대한 차이를 저장할 변수(분자)
+temp_sim3 = [0] * 80 # 80개의 각 class에 대해 큰 수를 자장할 변수(분모)
+sim_2 = [0] * 80 # 80개의 각 class에 대한 유사도
+sim_total = 0
+dict = {}
+shot_count1 = [1]
+def calc2(dict):
+    for i in range(len(dict['shot_1'])):
+        temp_sim3[i] = max(dict['shot_' + str(len(dict.keys())-1)][i],dict['shot_' + str(len(dict.keys()))][i])
+        if((temp_sim2[i]!=0) & (temp_sim3[i] != 0)):
+            sim_2[i] = 1 - (temp_sim2[i]/temp_sim3[i])
+    print("큰 값( 두 class) : ", temp_sim3)
+    print("80개 유사도", sim_2)
+    count = 0 # 존재하는 유사도가 몇개인지?
+    for j in range(len(sim_2)):
+        if(sim_2[j] != 0):
+            count += 1
+    similarity2 = sum(sim_2)/count              # 이미 1에서 뺀 값이므로 평균만 내어주면 됨
+    print("similarity2 : ", similarity2)
+    return similarity2
+
+def compare2(dict):
+    for i in range(len(dict['shot_1'])):
+        temp_sim2[i] = abs(dict['shot_' + str(len(dict.keys()) - 1)][i] - dict['shot_' + str(len(dict.keys()))][i])
+    print("이전샷 - 현재샷(분자) : ", temp_sim2)
+    simil_2 = calc2(dict)
+    return simil_2
+
+# rule2
+def rule2(temp1):
+    print("---------------------------------------------------Descriprion_Rule2-----------------------------------------------------")
+    print("temp1 : ", temp1)                    # 한프레임에서 검출한 모든 객체의 index_number
+    # 80개 리스트에 갯수를 누적 저장
+    for i in range(len(temp1)):
+        tmp1[temp1[i]] += 1
+    print("80개 리스트 : ",tmp1)
+    temp2 = tmp1.copy()                         # 저장을 위해 복사
+    # 샷이 바뀔 때마다 dict에 class별 index를 누적한 list를 저장
+    for k in range(len(shot_changed)):
+        if(len(frame) == shot_changed[k]):
+            dict['shot_' + str(len(shot_count1))] = temp2 # 샷이 바뀔 때마다 딕셔너리에 80개의 class list를 저장
+            shot_count1.append(1)
+            reset(tmp1)
+    print("rule2 : ", dict)
+    # 샷이 2개 이상이 되면 유사도 도출을 시작
+    if (len(dict.keys()) >= 2):
+        similarity2 = compare2(dict)
+        return similarity2
+# ----------------------------------------------------------------------------------------------------------------------
+# Standardization(도출한 유사도를 활용하는 부분!! 일단 전처리는 안하고 평균값을 사용!)
+simil1 = []
+simil2 = []
+similarity_average = []
+def standardization(similarity1, similarity2):
+    # 유사도가 없는 경우(shot이 최소 2개가 되지 않을 경우) -> 유사도를 0
+    if(similarity1 == None):
+        similarity1 = 0
+    if(similarity2 == None):
+        similarity2 = 0
+    print("유사도1 : ", similarity1)
+    print("유사도2 : ", similarity2)
+    print(len(frame))
+    simil_average = (similarity1 + similarity2) / 2
+    for k in range(len(shot_changed)):
+        if(len(frame) == shot_changed[k]):
+            similarity_average.append(simil_average)        # 첫번때 인덱스에 저장되는 값은 버려야 함(쓰레기 값임)
+            simil1.append(similarity1)
+            simil2.append(similarity2)
+    print("평균 유사도 : ", simil_average)
+    print("similarity_total", similarity_average)
+    print("similarity1 : ", simil1)
+    print("similarity2 : ", simil2)
+    # 여기서 장면분할을 위한 함수를 만들어 매개변수 던지기
+
+
+    # del simil1[0]
+    # del simil2[0]
+    # print(simil1)       # 유사도를 누적한 리스트의 0번째 값은 버려야함
+    # print(simil2)       # 유사도를 누적한 리스트의 0번째 값은 버려야함
+    # 1.단순 평균으로 종합 유사도 도출
+
+
+    # 2.전처리 공식에 넣어서 유사도 도출 -> 유사도의 값이 모두 0~1로 맞춰지기 때문에 평균으로 일단 test
+    # scaler = StandardScaler()
+    # simil1_scaled = scaler.transform(simil1)
+    return similarity_average
 
 
 def draw_masks_maskrcnn(image, boxes, scores, labels, masks, human_label_list=None,
@@ -252,14 +385,17 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
     """
     visualize bitmasks on image
     """
+    #initialization
+    temp1 = [] # class_names를 누적할 변수
     # need check if img and bitmask with same W,H
     if isinstance(bitmasks, torch.Tensor):
         bitmasks = bitmasks.cpu().numpy()
 
     if class_names is None or len(class_names) == 0:
         class_names = coco_label_map_list[1:]
+    #print(coco_label_map_list[1]) # coco index는 1번부터 80까지 총 80개임
+    #print(coco_label_map_list[0]) # 0번째 index는 background임
 
-    # print(class_names) # Donghwi Modify (class name load)
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.4
     font_thickness = 1
@@ -270,12 +406,15 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
     for i, m in enumerate(bitmasks):
         if m.shape != img.shape:
             m = cv2.resize(m, (img.shape[1], img.shape[0]))
-        cts, _ = cv2.findContours(m, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE) #Donghwi Modify (Original : cts, _)
+        cts, _ = cv2.findContours(m, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         if len(cts) > 0:
             cts = max(cts, key=cv2.contourArea)
         # enssue this is a unique color
         cid = int(classes[i])
-        # print(cid) # Donghwi Modify (find class id)
+        temp1.append(cid)
+        #print("cid : ", cid) # 찾은 class의 index를 저장하고 있음(프레임별로 갯수별로 담고있음
+        # print("class_names", class_names) # cocodataset의 80개 class 목록
+        # print("index_length", len(class_names))
         if force_colors:
             c = force_colors[cid]
         else:
@@ -306,12 +445,27 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
                 txt += f' {scores[classes[i]]}'
             if len(cts) > 0:
                 M = cv2.moments(cts)
-                if(M["m00"] != 0): # Donghwi Modify (Zero Division Error)
-                    cx = int(M["m10"] / M["m00"])
-                    cy = int(M["m01"] / M["m00"])
-                    # draw labels
-                    cv2.putText(img, txt, (cx, cy), font, font_scale, [255, 255, 255], 1, cv2.LINE_AA)
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                # draw labels
+                # print(class_names[classes[i]]) # 전체 class 이름
+                # print(class_names[0])
+                # print(classes[i]) #검출한 class의 index number
+                tmp[classes[i]] = 1
+                cv2.putText(img, txt, (cx, cy), font, font_scale, [255, 255, 255], 1, cv2.LINE_AA)
+    # 유사도 도출
+    similarity1 = rule1(classes, class_names, temp1)  # rule 1번
+    similarity2 = rule2(temp1)
+    # print("유사도1 : ", similarity1) #현재 값
+    # print("유사도2 : ", similarity2) #현재 값
 
+    # 표준화 전처리(Standardization)
+    similarity_total= standardization(similarity1,similarity2)
+    # print("평균 유사도 : ", similarity_total)
+
+    # 장면 분할(scene_segmentation)
+
+    frame.append(1)
     if return_combined:
         img = cv2.addWeighted(img, 0.7, res_m, alpha, 0.4)
         return img
