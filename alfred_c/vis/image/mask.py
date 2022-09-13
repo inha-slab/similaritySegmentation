@@ -13,6 +13,7 @@ from PIL import Image
 from .get_dataset_color_map import *
 from .get_dataset_label_map import coco_label_map_list
 import json
+from sklearn.preprocessing import StandardScaler
 
 ALL_COLORS_MAP = {
     "cityscapes": create_cityscapes_label_colormap(),
@@ -22,21 +23,21 @@ ALL_COLORS_MAP = {
     "coco": create_coco_stuff_colormap(),
 }
 # json 으로부터 shot이 변경되는 부분의 frame을 읽어오기
-shot_changed = []
-with open('MiSang_Frame.json') as json_file:
-	misang_frame = json.load(json_file)
-
-for i in range(len(misang_frame)):
-    shot_changed.append(misang_frame[i]['frame']-1)
-shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
-print(shot_changed)
+# shot_changed = []
+# with open('MiSang_Frame.json') as json_file:
+# 	misang_frame = json.load(json_file)
+#
+# for i in range(len(misang_frame)):
+#     shot_changed.append(misang_frame[i]['frame']-1)
+# shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
+# print(shot_changed)
 # ----------------------------------------------------------------------------------------------------------------------
 # rule1 : 이건 디텍트론이 객체를 찾아주는 거라서 yolo의 결과와는 다소 차이가 있음 yolo의 결과가 더 좋음
 tmp = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
 frame = [1]     # 몇번째 frmae인지를 표시하기 위한 변수
 shot = {}       # shot의 입력에 따라 순서대로 정보를 저장할 dictionary 변수
 shot_count = [1]
-# shot_changed = [3,6,10,20]          # shot이 변경될 때의 frame을 입력해주면 됨!, 추후 json으로!
+shot_changed = [3,6,10,15,20]          # shot이 변경될 때의 frame을 입력해주면 됨!, 추후 json으로!
 # 80개 cocodataset을 reset하는 code
 def reset(tmp):
     for i in range(len(tmp)):
@@ -140,7 +141,7 @@ def rule2(temp1):
         similarity2 = compare2(dict)
         return similarity2
 # ----------------------------------------------------------------------------------------------------------------------
-# Standardization
+# Standardization(도출한 유사도를 활용하는 부분!! 일단 전처리는 안하고 평균값을 사용!)
 simil1 = []
 simil2 = []
 similarity_average = []
@@ -154,13 +155,18 @@ def standardization(similarity1, similarity2):
     print("유사도2 : ", similarity2)
     print(len(frame))
     simil_average = (similarity1 + similarity2) / 2
-    print("평균 유사도 : ", simil_average)
     for k in range(len(shot_changed)):
         if(len(frame) == shot_changed[k]):
-            similarity_average.append(simil_average)        # 첫번때 인덱스에 저장되는 값은 버려야 함
-            # simil1.append(similarity1)
-            # simil2.append(similarity2)
-    # print("누적한 평균 유사도  ", similarity_average)
+            similarity_average.append(simil_average)        # 첫번때 인덱스에 저장되는 값은 버려야 함(쓰레기 값임)
+            simil1.append(similarity1)
+            simil2.append(similarity2)
+    print("평균 유사도 : ", simil_average)
+    print("similarity_total", similarity_average)
+    print("similarity1 : ", simil1)
+    print("similarity2 : ", simil2)
+    # 여기서 장면분할을 위한 함수를 만들어 매개변수 던지기
+
+
     # del simil1[0]
     # del simil2[0]
     # print(simil1)       # 유사도를 누적한 리스트의 0번째 값은 버려야함
@@ -172,6 +178,7 @@ def standardization(similarity1, similarity2):
     # scaler = StandardScaler()
     # simil1_scaled = scaler.transform(simil1)
     return similarity_average
+
 
 def draw_masks_maskrcnn(image, boxes, scores, labels, masks, human_label_list=None,
                         score_thresh=0.6, draw_box=True):
@@ -450,12 +457,15 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
     # 유사도 도출
     similarity1 = rule1(classes, class_names, temp1)  # rule 1번
     similarity2 = rule2(temp1)
-    # print("유사도1 : ", similarity1)
-    # print("유사도2 : ", similarity2)
+    # print("유사도1 : ", similarity1) #현재 값
+    # print("유사도2 : ", similarity2) #현재 값
+
     # 표준화 전처리(Standardization)
-    similarity_total = standardization(similarity1,similarity2)
-    print("평균 유사도 : ", similarity_total)
+    similarity_total= standardization(similarity1,similarity2)
+    # print("평균 유사도 : ", similarity_total)
+
     # 장면 분할(scene_segmentation)
+
     frame.append(1)
     if return_combined:
         img = cv2.addWeighted(img, 0.7, res_m, alpha, 0.4)
