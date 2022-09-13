@@ -108,7 +108,10 @@ def calc2(dict):
     for j in range(len(sim_2)):
         if(sim_2[j] != 0):
             count += 1
-    similarity2 = sum(sim_2)/count              # 이미 1에서 뺀 값이므로 평균만 내어주면 됨
+    if(count == 0):
+        similarity2 = 0
+    else:
+        similarity2 = sum(sim_2)/count              # 이미 1에서 뺀 값이므로 평균만 내어주면 됨
     print("similarity2 : ", similarity2)
     return similarity2
 
@@ -447,7 +450,7 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
                 M = cv2.moments(cts)
                 cx = None
                 cy = None
-                if M["m00"] == 0:
+                if (M["m00"] == 0):
                     cx = 0
                     cy = 0
                 else:
