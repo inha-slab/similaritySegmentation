@@ -29,7 +29,6 @@ with open('MiSang_Frame.json') as json_file:
 for i in range(len(misang_frame)):
     shot_changed.append(misang_frame[i]['frame']-1)
 shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
-# print(shot_changed)
 # ----------------------------------------------------------------------------------------------------------------------
 # rule1 : 이건 디텍트론이 객체를 찾아주는 거라서 yolo의 결과와는 다소 차이가 있음 yolo의 결과가 더 좋음
 tmp = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
