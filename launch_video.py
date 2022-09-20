@@ -277,7 +277,8 @@ if __name__ == "__main__":
                 for i in range(start_point, shot):
                     print(f'Rule3 - Shot{i}, Shot{shot} : {rule3(im, save_shot[(i - 1) * 2 + 1]) * 100}%')
                     if i == (shot-1): # shot n-1, shot n save
-                        similar3['similarity3'].append(float(rule3(im, save_shot[(i - 1) * 2 + 1])))
+                        cal = rule3(im, save_shot[(i - 1) * 2 + 1])
+                        similar3['similarity3'].append(float(cal))
                         with open('similarity3.json', 'w', encoding="utf-8") as outfile:
                             json.dump(similar3, outfile)
 
