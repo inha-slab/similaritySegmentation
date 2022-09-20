@@ -29,7 +29,7 @@ with open('MiSang_Frame.json') as json_file:
 for i in range(len(misang_frame)):
     shot_changed.append(misang_frame[i]['frame']-1)
 shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
-# print(shot_changed)
+print(shot_changed)
 # ----------------------------------------------------------------------------------------------------------------------
 # rule1 : 이건 디텍트론이 객체를 찾아주는 거라서 yolo의 결과와는 다소 차이가 있음 yolo의 결과가 더 좋음
 tmp = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
@@ -147,7 +147,14 @@ def rule2(temp1):
 simil1 = []
 simil2 = []
 similarity_average = []
-def standardization(similarity1, similarity2):
+similar1 = {}
+similar1['similarity1'] = []
+similar2 = {}
+similar2['similarity2'] = []
+similarity_av = {}
+similarity_av['similarity_average'] = []
+similarity2 = {}
+def standardization(similarity1, similarity2, frame):
     # 유사도가 없는 경우(shot이 최소 2개가 되지 않을 경우) -> 유사도를 0
     if(similarity1 == None):
         similarity1 = 0
@@ -166,6 +173,19 @@ def standardization(similarity1, similarity2):
     print("similarity_total", similarity_average)
     print("similarity1 : ", simil1)
     print("similarity2 : ", simil2)
+    # 유사도1,2 저장(첫번째 inidex 날려야함)
+    for i in range(len(shot_changed)):
+        # if(len(frame) == shot_changed[len(shot_count)-1]):
+        if (len(frame) == shot_changed[i]):
+            similar1['similarity1'].append(similarity1)
+            similar2['similarity2'].append(similarity2)
+            similarity_av['similarity_average'].append(simil_average)
+            with open('similarity1.json', 'w', encoding="utf-8") as outfile:
+                json.dump(similar1, outfile)
+            with open('similarity2.json', 'w', encoding="utf-8") as outfile:
+                json.dump(similar2, outfile)
+            with open('similarity_average.json', 'w', encoding="utf-8") as outfile:
+                json.dump(similarity_av, outfile)
     # 여기서 장면분할을 위한 함수를 만들어 매개변수 던지기
 
 
@@ -469,7 +489,7 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
     # print("유사도2 : ", similarity2) #현재 값
 
     # 표준화 전처리(Standardization)
-    similarity_total= standardization(similarity1,similarity2)
+    similarity_total= standardization(similarity1,similarity2,frame)
     # print("평균 유사도 : ", similarity_total)
 
     # 장면 분할(scene_segmentation)
