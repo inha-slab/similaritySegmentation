@@ -29,6 +29,7 @@ with open('MiSang_Frame.json') as json_file:
 for i in range(len(misang_frame)):
     shot_changed.append(misang_frame[i]['frame']-1)
 shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
+print(shot_changed)
 # ----------------------------------------------------------------------------------------------------------------------
 # rule1 : 이건 디텍트론이 객체를 찾아주는 거라서 yolo의 결과와는 다소 차이가 있음 yolo의 결과가 더 좋음
 tmp = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
@@ -65,10 +66,10 @@ def compare(shot):
     return  similarity1
 
 def rule1(classes,class_names,temp1):
-    print("---------------------------------------------------Descriprion_Rule1-----------------------------------------------------")
+    print("--------------------------------------------------------------------------------------------------------")
     # print("classes     : ",classes)               # 한 frame에서 검출한 객체의 index를 모두 담고있음
     result = set(classes)                         # 중복되는 class를 정리
-    print('set_classes : ', result)               # 정리한 클래스 출력
+    # print('set_classes : ', result)               # 정리한 클래스 출력
     # print('index_match : ',tmp)                   # 80개의 list에 검출한 index를 누적해서 표시!
     # print('frame_number: ', len(frame))
     temp = tmp.copy()
@@ -79,7 +80,7 @@ def rule1(classes,class_names,temp1):
             #shot = {'shot_'+str(len(shot_count)) : tmp}
             shot['shot_' + str(len(shot_count))] = temp # 샷이 바뀔 때마다 딕셔너리에 80개의 class list를 저장
             shot_count.append(1)
-            print(shot) # 누적되는 샷을 출력
+            # print(shot) # 누적되는 샷을 출력
             reset(tmp)
     # print('shot_count : ', len(shot.keys()))            # 몇번째 샷인지 출력, 여기까지 문제 없음
 
@@ -101,8 +102,8 @@ def calc2(dict):
         temp_sim3[i] = max(dict['shot_' + str(len(dict.keys())-1)][i],dict['shot_' + str(len(dict.keys()))][i])
         if((temp_sim2[i]!=0) & (temp_sim3[i] != 0)):
             sim_2[i] = 1 - (temp_sim2[i]/temp_sim3[i])
-    print("큰 값( 두 class) : ", temp_sim3)
-    print("80개 유사도", sim_2)
+    # print("큰 값( 두 class) : ", temp_sim3)
+    # print("80개 유사도", sim_2)
     count = 0 # 존재하는 유사도가 몇개인지?
     for j in range(len(sim_2)):
         if(sim_2[j] != 0):
@@ -111,24 +112,24 @@ def calc2(dict):
         similarity2 = 0
     else:
         similarity2 = sum(sim_2)/count              # 이미 1에서 뺀 값이므로 평균만 내어주면 됨
-    print("similarity2 : ", similarity2)
+    # print("similarity2 : ", similarity2)
     return similarity2
 
 def compare2(dict):
     for i in range(len(dict['shot_1'])):
         temp_sim2[i] = abs(dict['shot_' + str(len(dict.keys()) - 1)][i] - dict['shot_' + str(len(dict.keys()))][i])
-    print("이전샷 - 현재샷(분자) : ", temp_sim2)
+    # print("이전샷 - 현재샷(분자) : ", temp_sim2)
     simil_2 = calc2(dict)
     return simil_2
 
 # rule2
 def rule2(temp1):
-    print("---------------------------------------------------Descriprion_Rule2-----------------------------------------------------")
-    print("temp1 : ", temp1)                    # 한프레임에서 검출한 모든 객체의 index_number
+    # print("---------------------------------------------------Descriprion_Rule2-----------------------------------------------------")
+    # print("temp1 : ", temp1)                    # 한프레임에서 검출한 모든 객체의 index_number
     # 80개 리스트에 갯수를 누적 저장
     for i in range(len(temp1)):
         tmp1[temp1[i]] += 1
-    print("80개 리스트 : ",tmp1)
+    # print("80개 리스트 : ",tmp1)
     temp2 = tmp1.copy()                         # 저장을 위해 복사
     # 샷이 바뀔 때마다 dict에 class별 index를 누적한 list를 저장
     for k in range(len(shot_changed)):
@@ -136,7 +137,7 @@ def rule2(temp1):
             dict['shot_' + str(len(shot_count1))] = temp2 # 샷이 바뀔 때마다 딕셔너리에 80개의 class list를 저장
             shot_count1.append(1)
             reset(tmp1)
-    print("rule2 : ", dict)
+    # print("rule2 : ", dict)
     # 샷이 2개 이상이 되면 유사도 도출을 시작
     if (len(dict.keys()) >= 2):
         similarity2 = compare2(dict)
@@ -146,25 +147,46 @@ def rule2(temp1):
 simil1 = []
 simil2 = []
 similarity_average = []
-def standardization(similarity1, similarity2):
+similar1 = {}
+similar1['similarity1'] = []
+similar2 = {}
+similar2['similarity2'] = []
+similarity_av = {}
+similarity_av['similarity_average'] = []
+similarity2 = {}
+def standardization(similarity1, similarity2, frame):
     # 유사도가 없는 경우(shot이 최소 2개가 되지 않을 경우) -> 유사도를 0
     if(similarity1 == None):
         similarity1 = 0
     if(similarity2 == None):
         similarity2 = 0
-    print("유사도1 : ", similarity1)
-    print("유사도2 : ", similarity2)
-    print(len(frame))
+    # print("유사도1 : ", similarity1)
+    # print("유사도2 : ", similarity2)
+    # print("평균 유사도 : ", simil_average)
+    # print(len(frame))
     simil_average = (similarity1 + similarity2) / 2
     for k in range(len(shot_changed)):
         if(len(frame) == shot_changed[k]):
             similarity_average.append(simil_average)        # 첫번때 인덱스에 저장되는 값은 버려야 함(쓰레기 값임)
             simil1.append(similarity1)
             simil2.append(similarity2)
-    print("평균 유사도 : ", simil_average)
+
     print("similarity_total", similarity_average)
     print("similarity1 : ", simil1)
     print("similarity2 : ", simil2)
+    # 유사도1,2 저장(첫번째 inidex 날려야함)
+    for i in range(len(shot_changed)):
+        # if(len(frame) == shot_changed[len(shot_count)-1]):
+        if (len(frame) == shot_changed[i]):
+            similar1['similarity1'].append(similarity1)
+            similar2['similarity2'].append(similarity2)
+            similarity_av['similarity_average'].append(simil_average)
+            with open('similarity1.json', 'w', encoding="utf-8") as outfile:
+                json.dump(similar1, outfile)
+            with open('similarity2.json', 'w', encoding="utf-8") as outfile:
+                json.dump(similar2, outfile)
+            with open('similarity_average.json', 'w', encoding="utf-8") as outfile:
+                json.dump(similarity_av, outfile)
     # 여기서 장면분할을 위한 함수를 만들어 매개변수 던지기
 
 
@@ -468,7 +490,7 @@ def vis_bitmasks_with_classes(img, classes, bitmasks, force_colors=None, scores=
     # print("유사도2 : ", similarity2) #현재 값
 
     # 표준화 전처리(Standardization)
-    similarity_total= standardization(similarity1,similarity2)
+    similarity_total= standardization(similarity1,similarity2,frame)
     # print("평균 유사도 : ", similarity_total)
 
     # 장면 분할(scene_segmentation)
