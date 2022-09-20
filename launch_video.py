@@ -206,6 +206,7 @@ def rule3(current_frame, previous_frame):
     return sum / 256
 
 similar3 = {}
+similar3['similarity3'] = []
 
 if __name__ == "__main__":
     #
