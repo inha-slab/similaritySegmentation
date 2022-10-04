@@ -41,7 +41,6 @@ shot_count = [1]
 def reset(tmp):
     for i in range(len(tmp)):
         tmp[i] = 0
-# 유사도 계산을 위해 큰 값을 반환 분모 중 큰 값을 반환
 def calc(shot):
     ct1 = 0
     ct2 = 0
