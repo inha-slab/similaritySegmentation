@@ -26,17 +26,71 @@ shot_changed = []
 with open('MiSang_Frame.json') as json_file:
 	misang_frame = json.load(json_file)
 
-for i in range(len(misang_frame)):
-    shot_changed.append(misang_frame[i]['frame']-1)
-shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
-print(shot_changed)
+# for i in range(len(misang_frame)):
+#     shot_changed.append(misang_frame[i]['frame']-1)
+# shot_changed.remove(0) # 첫번째 쓰레기값 제거, shot이 변경되는 순간의 frame
+# print(shot_changed)
 # ----------------------------------------------------------------------------------------------------------------------
 # rule1 : 이건 디텍트론이 객체를 찾아주는 거라서 yolo의 결과와는 다소 차이가 있음 yolo의 결과가 더 좋음
 tmp = [0] * 80  # 80개의 cocodataset을 담을 변수 만들기
 frame = [1]     # 몇번째 frmae인지를 표시하기 위한 변수
 shot = {}       # shot의 입력에 따라 순서대로 정보를 저장할 dictionary 변수
 shot_count = [1]
-# shot_changed = [3,6,10,15,20]          # shot이 변경될 때의 frame을 입력해주면 됨!, 추후 json으로!
+shot_changed = [295,
+394,
+756,
+859,
+897,
+980,
+1034,
+1075,
+1090,
+1130,
+1175,
+1252,
+1301,
+1414,
+1465,
+1581,
+1636,
+1696,
+1722,
+1751,
+1779,
+1839,
+1885,
+1940,
+2045,
+2111,
+2164,
+2239,
+2280,
+2340,
+2406,
+2510,
+2585,
+2711,
+2769,
+2800,
+2870,
+2917,
+2937,
+2985,
+2996,
+3021,
+3065,
+3151,
+3232,
+3286,
+3327,
+3432,
+3612,
+3724,
+3774,
+3831,
+3906,
+3970,
+4030]          # shot이 변경될 때의 frame을 입력해주면 됨!, 추후 json으로!
 # 80개 cocodataset을 reset하는 code
 def reset(tmp):
     for i in range(len(tmp)):
@@ -61,7 +115,10 @@ def compare(shot):
             count += 1
     # print('같은 클래스의 수 : ', count)
     max_value = calc(shot)  # 큰 값음 함수로 계산
-    similarity1 = count / max_value
+    if (max_value == 0):
+        similarity1 = 0
+    else:
+        similarity1 = count / max_value
     print('Similarity1         : ', similarity1)
     return  similarity1
 
