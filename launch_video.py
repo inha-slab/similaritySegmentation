@@ -216,6 +216,7 @@ def rule3(current_frame, previous_frame):
     return (sum_B + sum_G + sum_R) / 3
 
 similar3 = {}
+similar3_all = {}
 similar3['similarity3'] = []
 
 if __name__ == "__main__":
@@ -280,12 +281,17 @@ if __name__ == "__main__":
 
             # First_Frame일 경우 이전 5개 샷의 Last_Frame을 체크해서 유사도를 구한다.
             if shot != 1:  # 첫번째 샷은 무시한다.
-                start_point = shot - 5
+                start_point = shot - 20
                 if start_point <= 1:
                     start_point = 1
 
+                similar3_all[f'{shot}'] = []
                 for i in range(start_point, shot):
                     print(f'Rule3 - Shot{i}, Shot{shot} : {rule3(im, save_shot[(i - 1) * 2 + 1]) * 100}%')
+                    cal = rule3(im, save_shot[(i - 1) * 2 + 1])
+                    similar3_all[f'{shot}'].append(float(cal))
+                    with open('similarity3_all.json', 'w', encoding="utf-8") as outfile:
+                        json.dump(similar3_all, outfile)
                     if i == (shot-1): # shot n-1, shot n save
                         cal = rule3(im, save_shot[(i - 1) * 2 + 1])
                         similar3['similarity3'].append(float(cal))
