@@ -191,10 +191,7 @@ def vis_res_fast(res, img, class_names, colors, thresh):
     return img
 
 
-def rule3(current_frame, previous_frame):
-    current_hist = cv2.calcHist([current_frame], [0], None, [256], [0, 256])
-    previous_hist = cv2.calcHist([previous_frame], [0], None, [256], [0, 256])
-
+def histogram_sum(current_hist, previous_hist):
     sum = 0
     for i in range(0, 256):
         if max(current_hist[i], previous_hist[i]) == 0:
@@ -202,8 +199,21 @@ def rule3(current_frame, previous_frame):
         else:
             hist_similarity = 1 - (abs(current_hist[i] - previous_hist[i]) / max(current_hist[i], previous_hist[i]))
             sum = sum + hist_similarity
-
     return sum / 256
+
+def rule3(current_frame, previous_frame):
+    current_hist_B = cv2.calcHist([current_frame], [0], None, [256], [0, 256])
+    current_hist_G = cv2.calcHist([current_frame], [1], None, [256], [0, 256])
+    current_hist_R = cv2.calcHist([current_frame], [2], None, [256], [0, 256])
+    previous_hist_B = cv2.calcHist([previous_frame], [0], None, [256], [0, 256])
+    previous_hist_G = cv2.calcHist([previous_frame], [1], None, [256], [0, 256])
+    previous_hist_R = cv2.calcHist([previous_frame], [2], None, [256], [0, 256])
+
+    sum_B = histogram_sum(current_hist_B, previous_hist_B)
+    sum_G = histogram_sum(current_hist_G, previous_hist_G)
+    sum_R = histogram_sum(current_hist_R, previous_hist_R)
+
+    return (sum_B + sum_G + sum_R) / 3
 
 similar3 = {}
 similar3['similarity3'] = []
